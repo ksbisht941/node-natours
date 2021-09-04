@@ -1,6 +1,15 @@
-const fs = require("fs");
-const bodyParser = require("body-parser");
+// const fs = require("fs");
+// const bodyParser = require("body-parser");
 const Tour = require("./../models/tourModel");
+
+exports.aliasTopTours = (req, res, next) => {
+  req.query.limit = '5';
+  req.query.sort = '-ratingsAverage,price',
+  req.query.fields = 'name,price,ratingsAverage,summary,difficulty';
+  next();
+};
+
+
 
 // const tours = JSON.parse(
 //   fs.readFileSync(`${__dirname}/../dev-data/data/tours-simple.json`)
@@ -53,33 +62,68 @@ exports.getAllTours = async (req, res) => {
     //   .equals('easy');
 
     // BUILD QUERY
-    // 1) Basic Filtering
+    // 1A) Basic Filtering
     const queryObj = { ...req.query };
-
     const excludedFields = ["page", "sort", "limit", "fields"];
     excludedFields.forEach((el) => delete queryObj[el]);
 
-    // 2) Advance Filtering
+    // 1B) Advance Filtering
     let queryStr = JSON.stringify(queryObj);
-    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`);
-    console.log('queryStr', JSON.parse(queryStr));
+    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
+    // console.log("queryStr", JSON.parse(queryStr));
 
-    const query = Tour.find(JSON.parse(queryStr));
+    let query = Tour.find(JSON.parse(queryStr));
+
+    // 2) Sorting
+    if (req.query.sort) {
+      const sortBy = req.query.sort.split(",").join(" ");
+      // console.log(sortBy);
+      query = query.sort(req.query.sort);
+
+      // sort('price r')
+    } else {
+      query = query.sort("-createdAt");
+    }
+
+    // 3) Limiting fields
+    // console.log(req.query.fields);
+    if (req.query.fields) {
+      const fields = req.query.fields.split(",").join(" ");
+      query = query.select(fields);
+    } else {
+      query = query.select("-__v");
+    }
+
+    // 4) Pagination
+    const page = req.query.page * 1 || 1;
+    const limit = req.query.limit * 1 || 10;
+    const skip = (page - 1) * limit;
+
+    query = query.skip(skip).limit(limit);
+
+    if (req.query.page) {
+      const numTours = await Tour.countDocuments();
+      // console.log(numTours);
+      if (skip >= numTours) throw new Error('This page does not exist');
+      
+    }
 
     // EXECUTE QUERY
     const tours = await query;
+    // query.sort().select().skip().limit()
 
     res.status(200).json({
+      code: "200",
       status: "success",
       requestAt: req.requestTime,
       length: tours.length,
-      code: "200",
       data: {
         tours,
       },
     });
   } catch (err) {
     res.status(404).json({
+      code: '404',
       status: "fail",
       message: err,
     });

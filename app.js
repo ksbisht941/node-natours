@@ -20,15 +20,15 @@ app.use(express.static(`${__dirname}/public`));
 
 // "express.json()" middleware is bascially a functionn that can modify the incoming request data.
 
-app.use((req, res, next) => {
-  console.log('Hello from this middleware 👋');
-  next();
-});
+// app.use((req, res, next) => {
+//   console.log('Hello from this middleware 👋');
+//   next();
+// });
 
-//   app.use((req, res, next) => {
-//     req.requestTime = new Date().toISOString();
-//     next();
-//   });
+  app.use((req, res, next) => {
+    req.requestTime = new Date().toISOString();
+    next();
+  });
 
 // Route Handler
 
