@@ -286,11 +286,11 @@ exports.getTourStats = async (req, res) => {
       {
         $sort: { avgPrice: 1 },
       },
-      {
-        $match: {
-          _id: { $ne: "EASY" },
-        },
-      },
+      // {
+      //   $match: {
+      //     _id: { $ne: "EASY" },
+      //   },
+      // },
     ]);
 
     // console.log("stats", stats);
@@ -298,6 +298,7 @@ exports.getTourStats = async (req, res) => {
     res.status(200).json({
       code: "200",
       status: "success",
+      length: stats.length,
       message: "fetch data successfully!",
       data: {
         stats,
